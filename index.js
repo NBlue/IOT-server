@@ -27,6 +27,7 @@ app.use('/v1/auth', authorRoute);
 app.use('/v1/house', houseRoute);
 app.use('/v1/device', deviceRoute);
 app.use('/v1/data', dataRoute);
+app.use('/', (req, res) => res.status(200).json({ message: 'Day la duong dan mac dinh!' }));
 
 // Random data
 dataController.randomAndSaveData();
