@@ -34,7 +34,26 @@ const dataController = {
         };
 
         // Random Data
-        cron.schedule('0 * * * *', () => {
+        // cron.schedule('0 * * * *', () => {
+        //     for (let type of types) {
+        //         const randomData = randomFakeData(type);
+
+        //         // Code to update the 'datas' array in DeviceType model
+        //         DeviceType.updateMany(
+        //             { type_name: type.type_name },
+        //             { $push: { datas: { data: randomData, create_at: new Date() } } },
+        //             (err, result) => {
+        //                 if (err) {
+        //                     console.log(err);
+        //                 } else {
+        //                     console.log('Fake data is successfully!');
+        //                 }
+        //             }
+        //         );
+        //     }
+        // });
+
+        setInterval(() => {
             for (let type of types) {
                 const randomData = randomFakeData(type);
 
@@ -51,7 +70,7 @@ const dataController = {
                     }
                 );
             }
-        });
+        }, 3600000);
 
         // Random Event
         cron.schedule('0 8,16 * * *', () => {
