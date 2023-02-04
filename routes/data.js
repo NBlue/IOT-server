@@ -3,6 +3,6 @@ const authMiddleware = require('../middleware/authMiddleware');
 
 const router = require('express').Router();
 
-router.get('/', authMiddleware.veriryToken, dataController.getDeviceData);
+router.get('/:houseId', authMiddleware.veriryToken, dataController.getDeviceData);
 
 module.exports = router;

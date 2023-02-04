@@ -18,7 +18,7 @@ const deviceTypeSchema = new mongoose.Schema({
             data: {
                 type: Number,
             },
-            create_at: {
+            created_at: {
                 type: Date,
                 default: Date.now,
             },

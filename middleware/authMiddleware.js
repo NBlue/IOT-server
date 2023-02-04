@@ -6,11 +6,11 @@ const authMiddleware = {
 
         if (token) {
             const accessToken = token.split(' ')[1];
-            jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET, (err, admin) => {
+            jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
                 if (err) {
                     return res.status(403).json({ success: false, message: 'Token is not valid!' }); // Token da het han or ko dung
                 }
-                req.admin = admin;
+                req.user = user;
                 next();
             });
         } else {

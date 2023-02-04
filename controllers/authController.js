@@ -1,7 +1,7 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
-const Admin = require('../models/Admin');
+const User = require('../models/User');
 const House = require('../models/House');
 const DeviceType = require('../models/DeviceType');
 
@@ -9,50 +9,30 @@ let refeshTokens = [];
 
 const authController = {
     // REGISTER
-    register: async (req, res) => {
+    registerUser: async (req, res) => {
         try {
+            // Check username exist
+            const findUser = await User.findOne({ username: req.body.username });
+            if (findUser) {
+                return res.status(409).json({
+                    success: false,
+                    message: 'username already registered!',
+                });
+            }
             // Hash password
             const salt = await bcrypt.genSalt(10);
             const hashedPassword = await bcrypt.hash(req.body.password, salt);
 
-            // Create 4 device type and save to house
-            const types = [
-                { type_name: 'Temp', min: 15, max: 30 },
-                { type_name: 'Humi', min: 40, max: 60 },
-                { type_name: 'Oxi', min: 20, max: 30 },
-                { type_name: 'Sun', min: 5000, max: 9000 },
-            ];
-
-            const promises = types.map((type) => {
-                const newType = new DeviceType(type);
-                return newType.save();
-            });
-            const savedTypes = await Promise.all(promises);
-            const device_ids = savedTypes.map((type) => type._id);
-
-            // Create 1 house while admin register
-            const newHouse = new House({
-                name: `${req.body.username} House`,
-                password: '00000000',
-                width: 0,
-                height: 0,
-                device_types: [...device_ids],
-            });
-            let house = await newHouse.save();
-
-            const newAdmin = new Admin({
+            const newUser = new User({
                 ...req.body,
                 password: hashedPassword,
-                isAdmin: true,
-                houses: [house._id],
             });
 
-            const admin = await newAdmin.save();
-            house = await house.updateOne({ $push: { admins: admin._id } });
+            const user = await newUser.save();
 
             return res.status(200).json({
                 success: true,
-                admin,
+                user,
             });
         } catch (error) {
             return res.status(500).json({ success: false, error: error });
@@ -64,8 +44,6 @@ const authController = {
         return jwt.sign(
             {
                 id: account.id,
-                houseId: account.houses[0],
-                isAdmin: account.isAdmin,
             },
             process.env.ACCESS_TOKEN_SECRET,
             { expiresIn: '30d' }
@@ -76,8 +54,6 @@ const authController = {
         return jwt.sign(
             {
                 id: account.id,
-                houseId: account.houses[0],
-                isAdmin: account.isAdmin,
             },
             process.env.REFESH_TOKEN_SECRET,
             { expiresIn: '365d' }
@@ -85,30 +61,30 @@ const authController = {
     },
 
     // LOGIN
-    login: async (req, res) => {
+    loginUser: async (req, res) => {
         try {
-            const admin = await Admin.findOne({ username: req.body.username }).populate({
+            const user = await User.findOne({ username: req.body.username }).populate({
                 path: 'houses',
                 model: 'House',
+                select: '-events',
             });
-            if (!admin)
+            if (!user)
                 return res.status(404).json({
                     success: false,
                     message: 'Wrong username',
                 });
 
-            const validPassword = await bcrypt.compare(req.body.password, admin.password);
+            const validPassword = await bcrypt.compare(req.body.password, user.password);
             if (!validPassword)
                 return res.status(404).json({
                     success: false,
                     message: 'Wrong password',
                 });
 
-            //Login success
-            if (admin && validPassword) {
-                const accessToken = authController.generateAccessToken(admin);
+            if (user && validPassword) {
+                const accessToken = authController.generateAccessToken(user);
 
-                const refeshToken = authController.generateRefeshToken(admin);
+                const refeshToken = authController.generateRefeshToken(user);
                 res.cookie('refeshToken', refeshToken, {
                     httpOnly: true,
                     secure: false,
@@ -116,15 +92,21 @@ const authController = {
                     sameSite: 'strict',
                 });
                 refeshTokens.push(refeshToken);
-
-                const { password, ...others } = admin._doc;
-                return res.status(200).json({
-                    success: true,
-                    admin: {
-                        ...others,
-                        accessToken,
-                    },
-                });
+                // Check account da ket noi voi nha nam nao chua
+                if (user.houses.length === 0)
+                    return res
+                        .status(200)
+                        .json({ success: true, message: 'Account is not linked to home!', accessToken });
+                else {
+                    const { password, ...others } = user._doc;
+                    return res.status(200).json({
+                        success: true,
+                        user: {
+                            ...others,
+                            accessToken,
+                        },
+                    });
+                }
             }
         } catch (error) {
             return res.status(500).json({ success: false, error: error });
@@ -166,7 +148,7 @@ const authController = {
     },
 
     // LOGOUT
-    logout: async (req, res) => {
+    logoutUser: async (req, res) => {
         res.clearCookie('refeshToken');
         refeshTokens = refeshTokens.filter((token) => token !== req.cookies.refeshToken);
         return res.status(200).json({ success: true, message: 'Logged out success!' });

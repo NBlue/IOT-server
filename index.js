@@ -29,9 +29,9 @@ app.use('/v1/device', deviceRoute);
 app.use('/v1/data', dataRoute);
 app.get('/', (req, res) => res.status(200).json({ message: 'Day la duong dan mac dinh!' }));
 
-// Random data
+// // Random data
 dataController.randomAndSaveData();
 
-app.listen(8000, () => {
-    console.log('Server is running at http://localhost:8000');
+app.listen(9000, () => {
+    console.log('Server is running at http://localhost:9000');
 });

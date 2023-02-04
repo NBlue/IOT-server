@@ -1,6 +1,10 @@
 const mongoose = require('mongoose');
 
-const adminSchema = new mongoose.Schema({
+const userSchema = new mongoose.Schema({
+    name: {
+        type: String,
+        required: true,
+    },
     username: {
         type: String,
         required: true,
@@ -12,10 +16,6 @@ const adminSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    isAdmin: {
-        type: Boolean,
-        default: false,
-    },
     houses: [
         {
             type: mongoose.Schema.Types.ObjectId,
@@ -24,4 +24,4 @@ const adminSchema = new mongoose.Schema({
     ],
 });
 
-module.exports = mongoose.model('Admin', adminSchema);
+module.exports = mongoose.model('User', userSchema);

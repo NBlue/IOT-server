@@ -22,17 +22,10 @@ const deviceSchema = new mongoose.Schema({
         type: Number,
         required: true,
     },
-    events: [
-        {
-            message: {
-                type: String,
-            },
-            created_at: {
-                type: Date,
-                default: Date.now,
-            },
-        },
-    ],
+    data: {
+        type: Number,
+        default: 0,
+    },
     type: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'DeviceType',

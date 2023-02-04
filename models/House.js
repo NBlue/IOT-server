@@ -5,10 +5,6 @@ const houseSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    password: {
-        type: String,
-        required: true,
-    },
     width: {
         type: Number,
         required: true,
@@ -17,16 +13,35 @@ const houseSchema = new mongoose.Schema({
         type: Number,
         required: true,
     },
-    admins: [
+    members: [
         {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Admin',
+            _id: false,
+            user: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'User',
+            },
+            role: {
+                type: String,
+                enum: ['admin', 'member'],
+                default: 'member',
+            },
         },
     ],
     device_types: [
         {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'DeviceType',
+        },
+    ],
+    events: [
+        {
+            message: {
+                type: String,
+            },
+            created_at: {
+                type: Date,
+                default: Date.now,
+            },
         },
     ],
 });

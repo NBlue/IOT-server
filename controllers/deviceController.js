@@ -1,4 +1,3 @@
-const moment = require('moment-timezone');
 const DeviceType = require('../models/DeviceType');
 const Device = require('../models/Device');
 const House = require('../models/House');
@@ -7,9 +6,7 @@ const deviceControler = {
     //  POST ADD DEVICE
     addDevice: async (req, res) => {
         try {
-            console.log(req.admin); // Lay tu verify token
-
-            const house = await House.findById(req.admin.houseId);
+            const house = await House.findById(req.params.houseId);
             if (!house) return res.status(404).json({ success: false, message: 'House is not found!' });
 
             const newDeviceData = new Device({
@@ -28,9 +25,7 @@ const deviceControler = {
                     const device = await newDeviceData.save();
                     const updatedDeviceType = await DeviceType.findByIdAndUpdate(
                         type_id,
-                        {
-                            devices: [...deviceType.devices, device._id],
-                        },
+                        { $addToSet: { devices: device._id } },
                         { new: true }
                     );
 
@@ -50,14 +45,15 @@ const deviceControler = {
     // GET ALL DEVICES
     getDevices: async (req, res) => {
         try {
-            const houseData = await House.findById(req.admin.houseId).populate({
+            const houseData = await House.findById(req.params.houseId).populate({
                 path: 'device_types',
+                select: '-datas',
                 populate: { path: 'devices', model: 'Device' },
             });
 
             const deviceDatas = [];
             houseData.device_types.map((deviceType) => {
-                const { type_name, min, max, datas, devices } = deviceType._doc;
+                const { type_name, min, max, devices } = deviceType._doc;
                 return devices.map((device) => deviceDatas.push({ ...device._doc, type_name, min, max }));
             });
 
@@ -70,46 +66,11 @@ const deviceControler = {
         }
     },
 
-    // GET ALL DEVICE EVENTS
-    getDeviceEvents: async (req, res) => {
-        try {
-            const houseData = await House.findById(req.admin.houseId).populate({
-                path: 'device_types',
-                populate: { path: 'devices', model: 'Device' },
-            });
-
-            let eventArr = [];
-            houseData.device_types.forEach((deviceTypeData) => {
-                const { devices, ...other } = deviceTypeData._doc;
-                const event = devices.forEach((device) => {
-                    const { events, ...other } = device._doc;
-                    eventArr = [...eventArr, ...events];
-                });
-            });
-
-            eventArr = eventArr
-                .sort(function (a, b) {
-                    return new Date(b.created_at) - new Date(a.created_at);
-                })
-                .map((event) => {
-                    const vnTime = moment.tz(event.created_at, 'Asia/Ho_Chi_Minh').format('HH:mm DD-MM-YYYY');
-                    return { ...event._doc, created_at: vnTime };
-                });
-
-            return res.status(200).json({
-                success: true,
-                events: eventArr,
-            });
-        } catch (error) {
-            return res.status(500).json({ success: false, error: error });
-        }
-    },
-
     // PUT UPDATE DEVICE BY id
     updateDeviceById: async (req, res) => {
         try {
             const updateDevice = await Device.findByIdAndUpdate(
-                req.params.id,
+                req.params.deviceId,
                 {
                     spaceX: req.body.spaceX,
                     spaceY: req.body.spaceY,
@@ -130,8 +91,8 @@ const deviceControler = {
     // DELETE DEVICE
     deleteDeviceById: async (req, res) => {
         try {
-            await DeviceType.updateMany({ devices: req.params.id }, { $pull: { devices: req.params.id } }); // Find and Delete deviceId in devices[]
-            await Device.findByIdAndDelete(req.params.id);
+            await DeviceType.updateMany({ devices: req.params.deviceId }, { $pull: { devices: req.params.deviceId } }); // Find and Delete deviceId in devices[]
+            await Device.findByIdAndDelete(req.params.deviceId);
             res.status(200).json({
                 success: true,
                 message: 'Device deleted successfully!',
